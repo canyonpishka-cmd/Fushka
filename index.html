@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Підробіток — MVP</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#17191c;--muted:#6b7280;--accent:#111827;--line:#e5e7eb;--ok:#15803d}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.nav{max-width:1050px;margin:auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{font-weight:900;font-size:21px}.logo span{color:#2563eb}.nav button{border:0;background:var(--accent);color:white;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+main{max-width:1050px;margin:auto;padding:25px 18px 60px}.hero{display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:center;margin:10px 0 25px}.hero h1{font-size:clamp(32px,6vw,54px);line-height:1;margin:0 0 14px}.hero p{color:var(--muted);font-size:18px}.hero-card{background:#111827;color:#fff;border-radius:20px;padding:24px}.hero-card strong{font-size:30px;display:block;margin-bottom:8px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}.primary,.secondary{border:0;border-radius:12px;padding:13px 17px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff}.secondary{background:#fff;border:1px solid var(--line)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar input,.toolbar select,.form input,.form textarea,.form select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}.toolbar .search{flex:2;min-width:220px}.toolbar select{flex:1;min-width:150px}
+.jobs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.job{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}.job-top{display:flex;justify-content:space-between;gap:10px}.job h3{margin:0 0 7px;font-size:19px}.price{font-weight:900;white-space:nowrap}.meta{color:var(--muted);font-size:14px;margin:8px 0}.tag{display:inline-block;background:#f0fdf4;color:var(--ok);padding:5px 8px;border-radius:8px;font-size:12px;font-weight:700}.job button{width:100%;margin-top:13px}.empty{text-align:center;padding:35px;color:var(--muted);grid-column:1/-1}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:flex-end;justify-content:center;z-index:10}.modal.open{display:flex}.sheet{background:#fff;width:min(620px,100%);max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:22px}.sheet-head{display:flex;justify-content:space-between}.close{border:0;background:#f3f4f6;border-radius:9px;padding:8px;cursor:pointer}.form{display:grid;gap:12px}.form label{font-size:13px;font-weight:800}.form textarea{min-height:100px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.notice{background:#eff6ff;padding:12px;border-radius:10px;font-size:13px;color:#1e40af}.applicant{border:1px solid var(--line);padding:12px;border-radius:10px;margin-top:8px}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:35px}
+@media(max-width:700px){.hero{grid-template-columns:1fr}.jobs{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="nav"><div class="logo">Підробіток<span>+</span></div><button onclick="openPost()">+ Створити завдання</button></div></header>
+
+<main>
+<section class="hero">
+<div>
+<h1>Знайди підробіток.<br>Знайди майстра.</h1>
+<p>Прості локальні завдання в Чехії — від покосу трави до допомоги з переїздом.</p>
+<div class="actions"><button class="primary" onclick="scrollJobs()">Знайти роботу</button><button class="secondary" onclick="openPost()">Мені потрібен майстер</button></div>
+</div>
+<div class="hero-card"><strong>500–2 000 Kč</strong>типова винагорода за невелике завдання<br><br>📍 Пошук поруч із тобою<br>⚡ Швидкий відгук<br>💬 Прямий контакт</div>
+</section>
+
+<h2 id="jobsTitle">Актуальні завдання</h2>
+<div class="toolbar">
+<div class="search"><input id="search" placeholder="Що потрібно зробити?" oninput="render()"></div>
+<select id="city" onchange="render()"><option value="">Усі міста</option><option>Прага</option><option>Брно</option><option>Острава</option><option>Пльзень</option></select>
+<select id="cat" onchange="render()"><option value="">Усі категорії</option><option>Будинок</option><option>Сад</option><option>Переїзд</option><option>Ремонт</option><option>Інше</option></select>
+</div>
+<div class="jobs" id="jobs"></div>
+<footer>MVP-прототип • без реєстрації та реальних платежів</footer>
+</main>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+const seed=[
+{id:1,title:"Покосити траву біля будинку",city:"Прага",cat:"Сад",price:700,when:"Сьогодні / завтра",desc:"Потрібно покосити приблизно 250 м² трави. Інструмент є.",name:"Олексій"},
+{id:2,title:"Допомогти з переїздом",city:"Прага",cat:"Переїзд",price:1200,when:"Субота",desc:"Потрібні 2 людини на 3–4 години. Є ліфт.",name:"Martin"},
+{id:3,title:"Зібрати шафу IKEA",city:"Брно",cat:"Будинок",price:800,when:"Цими вихідними",desc:"Шафа PAX, інструкція та інструменти є.",name:"Андрій"},
+{id:4,title:"Пофарбувати одну кімнату",city:"Острава",cat:"Ремонт",price:2000,when:"Наступного тижня",desc:"Кімната 18 м². Фарба вже куплена.",name:"Petra"}
+];
+let jobs=JSON.parse(localStorage.jobs||"null")||seed;
+let applications=JSON.parse(localStorage.applications||"{}");
+function save(){localStorage.jobs=JSON.stringify(jobs);localStorage.applications=JSON.stringify(applications)}
+function render(){
+ const q=document.getElementById("search").value.toLowerCase(), city=document.getElementById("city").value, cat=document.getElementById("cat").value;
+ const list=jobs.filter(j=>(!q||(j.title+" "+j.desc+" "+j.city).toLowerCase().includes(q))&&(!city||j.city===city)&&(!cat||j.cat===cat));
+ document.getElementById("jobs").innerHTML=list.length?list.map(j=>`
+ <article class="job"><div class="job-top"><div><h3>${esc(j.title)}</h3><span class="tag">${esc(j.cat)}</span></div><div class="price">${j.price} Kč</div></div>
+ <div class="meta">📍 ${esc(j.city)} · 🕒 ${esc(j.when)}</div><div>${esc(j.desc)}</div>
+ <button class="primary" onclick="openJob(${j.id})">Переглянути та відгукнутися</button></article>`).join(""):'<div class="empty">Нічого не знайдено. Спробуй інший запит.</div>';
+}
+function openJob(id){
+ const j=jobs.find(x=>x.id===id);
+ document.getElementById("sheet").innerHTML=`<div class="sheet-head"><div><h2>${esc(j.title)}</h2><div class="meta">📍 ${esc(j.city)} · ${esc(j.when)} · ${j.price} Kč</div></div><button class="close" onclick="closeModal()">✕</button></div>
+ <p>${esc(j.desc)}</p><div class="notice">Замовник: ${esc(j.name)}<br>У MVP контакт відкривається після відгуку.</div>
+ <div class="form" style="margin-top:15px"><label>Твоє ім'я<input id="appName" placeholder="Наприклад, Іван"></label><label>Повідомлення<textarea id="appMsg" placeholder="Напиши, чому ти підходиш для цього завдання"></textarea></label><button class="primary" onclick="apply(${j.id})">Відгукнутися</button></div>`;
+ openModal();
+}
+function apply(id){
+ const name=document.getElementById("appName").value.trim(), msg=document.getElementById("appMsg").value.trim();
+ if(!name||!msg)return alert("Заповни ім'я та повідомлення.");
+ (applications[id]??=[]).push({name,msg});
+ save(); closeModal(); alert("Відгук надіслано! У реальному продукті тут відкриється чат із замовником.");
+}
+function openPost(){
+ document.getElementById("sheet").innerHTML=`<div class="sheet-head"><h2>Створити завдання</h2><button class="close" onclick="closeModal()">✕</button></div>
+ <div class="form"><label>Що потрібно зробити?<input id="pTitle" placeholder="Наприклад: покосити траву"></label>
+ <div class="two"><label>Місто<select id="pCity"><option>Прага</option><option>Брно</option><option>Острава</option><option>Пльзень</option></select></label>
+ <label>Категорія<select id="pCat"><option>Будинок</option><option>Сад</option><option>Переїзд</option><option>Ремонт</option><option>Інше</option></select></label></div>
+ <div class="two"><label>Бюджет, Kč<input id="pPrice" type="number" placeholder="1000"></label><label>Коли?<input id="pWhen" placeholder="Субота"></label></div>
+ <label>Опис<textarea id="pDesc" placeholder="Опиши завдання, обсяг роботи та важливі деталі"></textarea></label>
+ <label>Твоє ім'я<input id="pName" placeholder="Наприклад, Андрій"></label>
+ <button class="primary" onclick="postJob()">Опублікувати завдання</button></div>`;
+ openModal();
+}
+function postJob(){
+ const title=pTitle.value.trim(), price=Number(pPrice.value), name=pName.value.trim();
+ if(!title||!price||!name)return alert("Заповни назву, бюджет та ім'я.");
+ jobs.unshift({id:Date.now(),title,city:pCity.value,cat:pCat.value,price,when:pWhen.value||"За домовленістю",desc:pDesc.value||"Без додаткового опису.",name});
+ save();closeModal();render();scrollJobs();alert("Завдання опубліковано.");
+}
+function openModal(){modal.classList.add("open")}function closeModal(){modal.classList.remove("open")}
+function scrollJobs(){document.getElementById("jobsTitle").scrollIntoView({behavior:"smooth"})}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+render();
+</script>
+</body>
+</html>
